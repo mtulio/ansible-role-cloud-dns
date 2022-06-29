@@ -31,7 +31,12 @@ galaxy_info:
     - dns
     - domains
     - aws
+    - amazon
     - route53
+    - digitalocean
+
+  cloud_platforms:
+    - amazon
     - digitalocean
 
 dependencies: []
