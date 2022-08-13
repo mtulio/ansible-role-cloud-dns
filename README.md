@@ -62,9 +62,9 @@ Example Playbook
   roles:
   - role: mtulio.cloud_load_balancer
     cloud_dns_zones:
-      - zone: "example.com"
+      - domain: "example.com"
         provider: aws
-      - zone: "private.example.com"
+      - domain: "private.example.com"
         provider: aws
         vpc_name: "my-vpc"
         vpc_region: us-east-1
@@ -78,7 +78,7 @@ Example Playbook
   roles:
   - role: mtulio.cloud_load_balancer
     cloud_dns_zones:
-      - zone: "example.com"
+      - domain: "example.com"
         provider: do
         vpc_region: "nyc3"
         project: "my-project"
