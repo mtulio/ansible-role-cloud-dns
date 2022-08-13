@@ -1,6 +1,7 @@
 ---
 - name: Show cloud_dns_zones
-  debug: var=cloud_dns_zones
+  debug:
+    var: cloud_dns_zones
 
 - name: Setup DNS
   include: "{{ zone.provider }}-zone.yaml"

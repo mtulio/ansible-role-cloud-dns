@@ -4,34 +4,61 @@
   debug:
     var: zone
 
-- name: DNS | AWS | Get VPC by Name
-  amazon.aws.ec2_vpc_net_info:
-    filters:
-      "tag:Name": "{{ zone.vpc_name }}"
-  when: zone.vpc_name is defined
-  register: vpc_info
+# Only domain_type=cluster_domain is supported
+- name: DNS | AWS | Ensure Cluster Zone exists
+  when: zone.vpc_name |d('') |length > 0
+  block:
+  - name: DNS | AWS | Get VPC by Name
+    amazon.aws.ec2_vpc_net_info:
+      filters:
+        "tag:Name": "{{ zone.vpc_name }}"
+    when: zone.vpc_name is defined
+    register: vpc_info
 
-- name: DNS | AWS | VPC Info
-  debug:
-    var: vpc_info
+  - name: DNS | AWS | Check required VPC results
+    ansible.builtin.assert:
+      that:
+        - vpc_info.vpcs|length > 0
+      fail_msg: "VPC Name '{{ zone.vpc_name }}' was not found to setup DNS Domain '{{ zone.name }}'"
 
-- name: DNS | AWS | Set VPC Id on zone
-  set_fact:
-    zone: "{{ zone | combine ({ 'vpc_id' : vpc_info.vpcs[0].vpc_id }) }}"
-  when:
-    - zone.vpc_name is defined
-    - vpc_info.vpcs|length > 0
+  - name: DNS | AWS | VPC Info
+    debug:
+      var: vpc_info
 
-- name: DNS | AWS | Create cluster zone
+  - name: DNS | AWS | Set VPC Id on zone
+    set_fact:
+      zone: "{{ zone | combine ({ 'vpc_id' : vpc_info.vpcs[0].vpc_id }) }}"
+    when:
+      - zone.vpc_name is defined
+      - vpc_info.vpcs|length > 0
+
+- name: DNS | AWS | Create private zone
   community.aws.route53_zone:
-    zone: "{{ zone.zone }}"
+    zone: "{{ zone.name }}"
     vpc_id: "{{ zone.vpc_id | d(vpc_info.vpcs[0].vpc_id) }}"
     vpc_region: "{{ zone.vpc_region }}"
     comment: "{{ zone.comment | d(omit) }}"
     state: present
-  when: (zone.openshift_type is defined) and zone.openshift_type == 'cluster'
+  when: (zone.vpc_id is defined)
+  register: z_out
+
+- name: DNS | AWS | Create public zone
+  community.aws.route53_zone:
+    zone: "{{ zone.name }}"
+    comment: "{{ zone.comment | d(omit) }}"
+    state: present
+  when: (zone.vpc_id is not defined)
   register: z_out
 
 - name: DNS | AWS | Zone Info
+  community.aws.route53_zone:
+    zone: "{{ zone.name }}"
+  register: z_out
+
+- name: DNS | Update Global states
+  set_fact:
+    cloud_dns_state: "{{ cloud_dns_state|d({}) | combine({ zone.name+'_id': z_out.zone_id }) }}"
+
+- name: DNS | Show Global states
   debug:
-    var: z_out
+    var: cloud_dns_state
