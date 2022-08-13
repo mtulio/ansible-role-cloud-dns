@@ -28,6 +28,7 @@
   - name: DNS | AWS | Set VPC Id on zone
     set_fact:
       zone: "{{ zone | combine ({ 'vpc_id' : vpc_info.vpcs[0].vpc_id }) }}"
+      vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
     when:
       - zone.vpc_name is defined
       - vpc_info.vpcs|length > 0
@@ -35,11 +36,11 @@
 - name: DNS | AWS | Create private zone
   community.aws.route53_zone:
     zone: "{{ zone.name }}"
-    vpc_id: "{{ zone.vpc_id | d(vpc_info.vpcs[0].vpc_id) }}"
+    vpc_id: "{{ vpc_id | d(vpc_info.vpcs[0].vpc_id) }}"
     vpc_region: "{{ zone.vpc_region }}"
     comment: "{{ zone.comment | d(omit) }}"
     state: present
-  when: (zone.vpc_id is defined)
+  when: (vpc_id is defined)
   register: z_out
 
 - name: DNS | AWS | Create public zone
@@ -47,7 +48,7 @@
     zone: "{{ zone.name }}"
     comment: "{{ zone.comment | d(omit) }}"
     state: present
-  when: (zone.vpc_id is not defined)
+  when: (vpc_id is not defined)
   register: z_out
 
 - name: DNS | AWS | Zone Info
