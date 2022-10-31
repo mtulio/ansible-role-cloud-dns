@@ -40,7 +40,9 @@
     vpc_region: "{{ zone.vpc_region }}"
     comment: "{{ zone.comment | d(omit) }}"
     state: present
-  when: (vpc_id is defined)
+  when:
+    - vpc_id is defined
+    - zone.vpc_name is defined
   register: z_out
 
 - name: DNS | AWS | Create public zone
