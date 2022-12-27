@@ -1,7 +1,7 @@
 ---
 
 - name: DNS | AWS | Zone config start
-  debug:
+  ansible.builtin.debug:
     var: zone
 
 # Only domain_type=cluster_domain is supported
@@ -22,11 +22,11 @@
       fail_msg: "VPC Name '{{ zone.vpc_name }}' was not found to setup DNS Domain '{{ zone.name }}'"
 
   - name: DNS | AWS | VPC Info
-    debug:
+    ansible.builtin.debug:
       var: vpc_info
 
   - name: DNS | AWS | Set VPC Id on zone
-    set_fact:
+    ansible.builtin.set_fact:
       zone: "{{ zone | combine ({ 'vpc_id' : vpc_info.vpcs[0].vpc_id }) }}"
       vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
     when:
@@ -59,9 +59,10 @@
   register: z_out
 
 - name: DNS | Update Global states
-  set_fact:
+  ansible.builtin.set_fact:
     cloud_dns_state: "{{ cloud_dns_state|d({}) | combine({ zone.name+'_id': z_out.zone_id }) }}"
 
 - name: DNS | Show Global states
-  debug:
+  ansible.builtin.debug:
     var: cloud_dns_state
+  when: debug|d(false)
