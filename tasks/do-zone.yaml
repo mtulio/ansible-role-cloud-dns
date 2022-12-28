@@ -8,5 +8,5 @@
 
 - name: DNS | DO | Update Cluster State
   ansible.builtin.set_fact:
-    cluster_state: "{% set x=cluster_state.zones.__setitem__(zone.openshift_type+'_id', z_out.domain.name) %}{{ cluster_state }}"
+    cluster_state: "{% set x = cluster_state.zones.__setitem__(zone.openshift_type + '_id', z_out.domain.name) %}{{ cluster_state }}"
   when: zone.openshift_type is defined

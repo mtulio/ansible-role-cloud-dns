@@ -6,7 +6,7 @@
 
 # Only domain_type=cluster_domain is supported
 - name: DNS | AWS | Ensure Cluster Zone exists
-  when: zone.vpc_name |d('') |length > 0
+  when: zone.vpc_name | d('') | length > 0
   block:
   - name: DNS | AWS | Get VPC by Name
     amazon.aws.ec2_vpc_net_info:
@@ -18,7 +18,7 @@
   - name: DNS | AWS | Check required VPC results
     ansible.builtin.assert:
       that:
-        - vpc_info.vpcs|length > 0
+        - vpc_info.vpcs | length > 0
       fail_msg: "VPC Name '{{ zone.vpc_name }}' was not found to setup DNS Domain '{{ zone.name }}'"
 
   - name: DNS | AWS | VPC Info
@@ -27,11 +27,11 @@
 
   - name: DNS | AWS | Set VPC Id on zone
     ansible.builtin.set_fact:
-      zone: "{{ zone | combine ({ 'vpc_id' : vpc_info.vpcs[0].vpc_id }) }}"
+      zone: "{{ zone | combine({'vpc_id': vpc_info.vpcs[0].vpc_id}) }}"
       vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
     when:
       - zone.vpc_name is defined
-      - vpc_info.vpcs|length > 0
+      - vpc_info.vpcs | length > 0
 
 - name: DNS | AWS | Create private zone
   community.aws.route53_zone:
@@ -60,9 +60,9 @@
 
 - name: DNS | Update Global states
   ansible.builtin.set_fact:
-    cloud_dns_state: "{{ cloud_dns_state|d({}) | combine({ zone.name+'_id': z_out.zone_id }) }}"
+    cloud_dns_state: "{{ cloud_dns_state | d({}) | combine({zone.name + '_id': z_out.zone_id}) }}"
 
 - name: DNS | Show Global states
   ansible.builtin.debug:
     var: cloud_dns_state
-  when: debug|d(false)
+  when: debug | d(false)
