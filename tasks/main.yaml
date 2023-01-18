@@ -3,7 +3,7 @@
   ansible.builtin.debug:
     var: cloud_dns_zones
 
-- name: Setup DNS
+- name: Setup by provider
   ansible.builtin.include_tasks: "{{ zone.provider }}-zone.yaml"
   with_items: "{{ cloud_dns_zones }}"
   loop_control:

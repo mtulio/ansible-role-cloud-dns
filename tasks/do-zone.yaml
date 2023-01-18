@@ -1,12 +1,12 @@
 ---
 
-- name: DNS | DO | Create zone
+- name: DO | Create zone
   community.digitalocean.digital_ocean_domain:
     state: present
     name: "{{ zone.zone }}"
   register: z_out
 
-- name: DNS | DO | Update Cluster State
+- name: DO | Update Cluster State
   ansible.builtin.set_fact:
     cluster_state: "{% set x = cluster_state.zones.__setitem__(zone.openshift_type + '_id', z_out.domain.name) %}{{ cluster_state }}"
   when: zone.openshift_type is defined

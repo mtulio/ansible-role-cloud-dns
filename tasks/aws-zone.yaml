@@ -1,31 +1,31 @@
 ---
 
-- name: DNS | AWS | Zone config start
+- name: AWS | Zone config start
   ansible.builtin.debug:
     var: zone
 
 # Only domain_type=cluster_domain is supported
-- name: DNS | AWS | Ensure Cluster Zone exists
+- name: AWS | Ensure Cluster Zone exists
   when: zone.vpc_name | d('') | length > 0
   block:
-  - name: DNS | AWS | Get VPC by Name
+  - name: AWS | Get VPC by Name
     amazon.aws.ec2_vpc_net_info:
       filters:
         "tag:Name": "{{ zone.vpc_name }}"
     when: zone.vpc_name is defined
     register: vpc_info
 
-  - name: DNS | AWS | Check required VPC results
+  - name: AWS | Check required VPC results
     ansible.builtin.assert:
       that:
         - vpc_info.vpcs | length > 0
       fail_msg: "VPC Name '{{ zone.vpc_name }}' was not found to setup DNS Domain '{{ zone.name }}'"
 
-  - name: DNS | AWS | VPC Info
+  - name: AWS | VPC Info
     ansible.builtin.debug:
       var: vpc_info
 
-  - name: DNS | AWS | Set VPC Id on zone
+  - name: AWS | Set VPC Id on zone
     ansible.builtin.set_fact:
       zone: "{{ zone | combine({'vpc_id': vpc_info.vpcs[0].vpc_id}) }}"
       vpc_id: "{{ vpc_info.vpcs[0].vpc_id }}"
@@ -33,7 +33,7 @@
       - zone.vpc_name is defined
       - vpc_info.vpcs | length > 0
 
-- name: DNS | AWS | Create private zone
+- name: AWS | Create private zone
   community.aws.route53_zone:
     zone: "{{ zone.name }}"
     vpc_id: "{{ vpc_id | d(vpc_info.vpcs[0].vpc_id) }}"
@@ -45,7 +45,7 @@
     - zone.vpc_name is defined
   register: z_out
 
-- name: DNS | AWS | Create public zone
+- name: AWS | Create public zone
   community.aws.route53_zone:
     zone: "{{ zone.name }}"
     comment: "{{ zone.comment | d(omit) }}"
@@ -53,12 +53,12 @@
   when: (vpc_id is not defined)
   register: z_out
 
-- name: DNS | AWS | Zone Info
+- name: AWS | Zone Info
   community.aws.route53_zone:
     zone: "{{ zone.name }}"
   register: z_out
 
-- name: DNS | Update Global states
+- name: AWS | Update Global states
   ansible.builtin.set_fact:
     cloud_dns_state: "{{ cloud_dns_state | d({}) | combine({zone.name + '_id': z_out.zone_id}) }}"
 
