@@ -1,0 +1,60 @@
+---
+# https://docs.oracle.com/en-us/iaas/tools/oci-ansible-collection/4.12.0/collections/oracle/oci/oci_dns_zone_module.html#ansible-collections-oracle-oci-oci-dns-zone-module
+
+- name: OCI | Zone | Config start
+  ansible.builtin.debug:
+    var: zone
+
+# Only domain_type=cluster_domain is supported
+- name: OCI | Zone | Setup Private
+  when: zone.spec.scope | d('') == 'PRIVATE'
+  block:
+  - name: OCI | Zone | Zone Views
+    oracle.oci.oci_dns_view_facts:
+      compartment_id: "{{ zone.spec.compartment_id }}"
+      display_name: "{{ zone.view_name }}"
+    register: _views
+
+  - name: OCI | Zone | Check required View results
+    ansible.builtin.assert:
+      that:
+        - _views.views | length > 0
+      fail_msg: "View with VPC Name '{{ zone.view_name }}' was not found to setup DNS Domain '{{ zone.name }}'"
+
+  - name: OCI | Zone | Set View ID
+    ansible.builtin.set_fact:
+      view_id: "{{ view.id }}"
+    loop: "{{ _views.views }}"
+    loop_control:
+      loop_var: view
+
+  - name: OCI | Zone | Ensure Private exists
+    oracle.oci.oci_dns_zone: "{{ zone.spec | combine({
+      \"name\": zone.name,
+      \"view_id\": view_id
+      }) }}"
+    register: _zone
+
+  - name: OCI | Update Global states
+    ansible.builtin.set_fact:
+      cloud_dns_state: "{{ cloud_dns_state | d({}) | combine({zone.name + '_id': _zone.zone.id}) }}"
+
+
+# Only domain_type=cluster_domain is supported
+- name: OCI | Zone | Ensure Public exists
+  when: zone.spec.scope | d('') != 'PRIVATE'
+  block:
+  - name: OCI | Zone | Create Public
+    oracle.oci.oci_dns_zone: "{{ zone.spec | combine({
+      \"name\": zone.name
+      }) }}"
+    register: _zone
+
+  - name: OCI | Update Global states
+    ansible.builtin.set_fact:
+      cloud_dns_state: "{{ cloud_dns_state | d({}) | combine({zone.name + '_id': _zone.zone.id}) }}"
+
+- name: DNS | Show Global states
+  ansible.builtin.debug:
+    var: cloud_dns_state
+  when: debug | d(false)
