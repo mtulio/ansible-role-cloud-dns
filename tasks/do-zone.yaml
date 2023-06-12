@@ -1,12 +1,24 @@
 ---
+- name: DO | Set defaults
+  ansible.builtin.set_fact:
+    zone_spec: "{{ zone.spec | d({}) }}"
 
 - name: DO | Create zone
   community.digitalocean.digital_ocean_domain:
-    state: present
-    name: "{{ zone.zone }}"
+  args: "{{ zone_spec }}"
   register: z_out
 
-- name: DO | Update Cluster State
+- debug: var=z_out
+
+# Domain API is not consistent when creating and
+# already exists.
+- name: DO | Update Global states
   ansible.builtin.set_fact:
-    cluster_state: "{% set x = cluster_state.zones.__setitem__(zone.openshift_type + '_id', z_out.domain.name) %}{{ cluster_state }}"
-  when: zone.openshift_type is defined
+    cloud_dns_state: "{{ cloud_dns_state | d({}) | combine({
+        zone_spec.name + '_id': z_out.domain.name | d(z_out.domain.domain.name)
+      }) }}"
+
+- name: DO | Show Global states
+  ansible.builtin.debug:
+    var: cloud_dns_state
+  when: debug | d(false)
